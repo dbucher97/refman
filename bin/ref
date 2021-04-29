@@ -82,6 +82,7 @@ The available subommands are:
         print(info.get_dict())
 
     def complete(self):
+        from refman import Database
         os.system(f'cat "{Database.get_cache(self.path)}"')
 
     def start(self):
