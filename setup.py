@@ -13,5 +13,6 @@ setup(
     author_email='David.Bucher@gmail.com',
     keywords=['latex', 'bibtex', 'pdf', 'reference', 'doi', 'arxiv', 'isbn'],
     url='https://github.com/dbucher97/refman',
-    data_files=[('opt/refman/zsh/', ['zsh/_ref'])]
+    data_files=[('opt/refman/zsh/', ['static/_ref']),
+                ('opt/refman/plist/', ['static/com.bucher.refman.plist'])]
 )

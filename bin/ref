@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 
-from refman import Observer, Info, Database
 import argparse
 import os
 import sys
@@ -38,6 +37,9 @@ The available subommands are:
    open      Open a pdf by reference ID.
    info      Get Meta Info for a PDF.
    complete  Autocomplete String.
+   start     Start watching in background.
+   stop      Stop watching in background.
+   fix       Jump to manual action in bib database.
 ''')
 #   add       Download objects and refs from another repository
 #   remove    Download objects and refs from another repository
@@ -52,10 +54,17 @@ The available subommands are:
         getattr(self, args.command)()
 
     def watch(self):
+        from notifypy import Notify
+        from refman import Observer
+        n = Notify(default_notification_application_name='RefMan')
+        n.title = 'Observation started'
+        n.message = f'Reference Directory "{self.path}"'
+        n.send()
         obs = Observer(self.path)
         obs.start()
 
     def open(self):
+        from refman import Database
         parser = argparse.ArgumentParser(description="Open a PDF by BibTeX ID")
         parser.add_argument('id', help='The BiTeX ID')
         args = parser.parse_args(sys.argv[2:])
@@ -64,6 +73,7 @@ The available subommands are:
         os.system(f'open -a Skim --args {path}')
 
     def info(self):
+        from refman import Info
         parser = argparse.ArgumentParser(description="Get PDF Metainfo")
         parser.add_argument('pdf', help='The PDF')
         args = parser.parse_args(sys.argv[2:])
@@ -73,6 +83,17 @@ The available subommands are:
 
     def complete(self):
         os.system(f'cat "{Database.get_cache(self.path)}"')
+
+    def start(self):
+        os.system(
+            'launchctl load -w /usr/local/opt/refman/plist/com.bucher.refman.plist')
+
+    def stop(self):
+        os.system(
+            'launchctl unload -w /usr/local/opt/refman/plist/com.bucher.refman.plist')
+
+    def fix(self):
+        os.system(f'nvim {os.path.join(self.path, "master.bib")} -c "/todo"')
 
 
 if __name__ == '__main__':

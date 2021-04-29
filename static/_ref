@@ -15,6 +15,9 @@ _ref() {
         'open:Open a PDF by BibTeX ID.'
         'info:Get Info for PDF.'
         'watch:Watch References directory for changes.'
+        'start:Start Continuous observation.'
+        'stop:Stop Continuous observation.'
+        'fix:Jump to manual action in bib database.'
       )
       _describe -t commands 'command' commands
     ;;
