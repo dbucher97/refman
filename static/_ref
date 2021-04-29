@@ -28,7 +28,17 @@ _ref() {
           _files -g "*.pdf"
         ;;
         (open)
-          local keys; keys=("${(@f)$(ref complete)}")
+          if [ -f "$HOME/.refman.conf" ]; then
+            f=$(cut -d '=' -f 2 < "$HOME/.refman.conf" | tr -d '[:space:]')
+            eval f=$f
+          else
+            f="$HOME/papers"
+          fi
+          f="$f/.bib_cache"
+          local keys; keys=()
+          if [ -f "$f" ]; then
+            keys=("${(@f)$(< $f)}")
+          fi
           _describe -t keys 'keys' keys
         ;;
       esac
