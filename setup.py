@@ -1,4 +1,6 @@
 from setuptools import setup
+import setuptools.command.install as install
+
 
 setup(
     name='refman',
@@ -10,5 +12,6 @@ setup(
     author='David Bucher',
     author_email='David.Bucher@gmail.com',
     keywords=['latex', 'bibtex', 'pdf', 'reference', 'doi', 'arxiv', 'isbn'],
-    url='https://github.com/dbucher97/refman'
+    url='https://github.com/dbucher97/refman',
+    data_files=[('opt/refman/zsh/', ['zsh/_ref'])]
 )

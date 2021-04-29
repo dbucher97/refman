@@ -2,3 +2,6 @@ test/
 .DS_Store
 __pycache__/
 *.pdf
+dist/
+*.egg-info/
+build/
