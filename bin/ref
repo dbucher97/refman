@@ -70,7 +70,7 @@ The available subommands are:
         args = parser.parse_args(sys.argv[2:])
         db = Database(self.path)
         path = db.get(args.id, 'path')
-        os.system(f'open -a Skim --args {path}')
+        os.system(f'open -n -a Skim --args {path}')
 
     def info(self):
         from refman import Info
