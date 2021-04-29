@@ -1,0 +1,79 @@
+#! /usr/bin/env python3
+
+from refman import Observer, Info, Database
+import argparse
+import os
+import sys
+
+
+def file_path(path):
+    return os.path.abspath(path)
+
+
+def parse_config():
+    default_dir = os.path.join(os.getenv('HOME'), 'papers')
+    try:
+        with open(os.path.join(os.getenv('HOME'), '.refman.conf'), 'r') as f:
+            for l in f:
+                k, v = l.split('=')
+                k = k.strip()
+                v = v.strip()
+                if k == 'dir':
+                    default_dir = os.path.expanduser(v)
+    except FileNotFoundError:
+        pass
+    return default_dir
+
+
+class RefMan():
+
+    def __init__(self):
+        self.path = parse_config()
+        parser = argparse.ArgumentParser(
+            description='BibTeX reference manger',
+            usage='''ref <command> [<args>]
+
+The available subommands are:
+   watch     Watch the defiend directory and add every incoming PDF.
+   open      Open a pdf by reference ID.
+   info      Get Meta Info for a PDF.
+   complete  Autocomplete String.
+''')
+#   add       Download objects and refs from another repository
+#   remove    Download objects and refs from another repository
+# ''')
+        parser.add_argument('command', help='Subcommand to run')
+        args = parser.parse_args(sys.argv[1:2])
+        if not hasattr(self, args.command):
+            print('Unrecognized command')
+            parser.print_help()
+            exit(1)
+
+        getattr(self, args.command)()
+
+    def watch(self):
+        obs = Observer(self.path)
+        obs.start()
+
+    def open(self):
+        parser = argparse.ArgumentParser(description="Open a PDF by BibTeX ID")
+        parser.add_argument('id', help='The BiTeX ID')
+        args = parser.parse_args(sys.argv[2:])
+        db = Database(self.path)
+        path = db.get(args.id, 'path')
+        os.system(f'open -a Skim --args {path}')
+
+    def info(self):
+        parser = argparse.ArgumentParser(description="Get PDF Metainfo")
+        parser.add_argument('pdf', help='The PDF')
+        args = parser.parse_args(sys.argv[2:])
+        info = Info(args.pdf)
+        info.retrieve()
+        print(info.get_dict())
+
+    def complete(self):
+        os.system(f'cat "{Database.get_cache(self.path)}"')
+
+
+if __name__ == '__main__':
+    RefMan()

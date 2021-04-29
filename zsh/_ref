@@ -1,0 +1,36 @@
+#compdef ref
+
+_ref() {
+  local state
+  local line
+
+  _arguments -C \
+    '-h[Display Help Message.]' \
+    '1:cmd:->cmds' \
+    '*:: :->args' \
+
+  case "$state" in
+    (cmds)
+      local commands; commands=(
+        'open:Open a PDF by BibTeX ID.'
+        'info:Get Info for PDF.'
+        'watch:Watch References directory for changes.'
+      )
+      _describe -t commands 'command' commands
+    ;;
+    (args)
+
+      case $line[1] in
+        (info)
+          _files -g "*.pdf"
+        ;;
+        (open)
+          local keys; keys=("${(@f)$(ref complete)}")
+          _describe -t keys 'keys' keys
+        ;;
+      esac
+    ;;
+  esac
+}
+
+_ref
