@@ -1,14 +1,14 @@
 import bibtexparser
+from .info import Info
 import os
 
+def get_cache(path):
+    cf = os.path.abspath(os.path.join(path, '.bib_cache'))
+    if not os.path.exists(cf):
+        Database(path).cache()
+    return cf
 
 class Database():
-
-    def get_cache(path):
-        cf = os.path.abspath(os.path.join(path, '.bib_cache'))
-        if not os.path.exists(cf):
-            Database(path).cache()
-        return cf
 
     def __init__(self, path, master='master', observer=None):
         self._file = os.path.abspath(os.path.join(path, master + '.bib'))
@@ -22,6 +22,10 @@ class Database():
     def load(self):
         with open(self._file, 'r') as f:
             self._db = bibtexparser.load(f)
+        for e in self:
+            for k in e.keys():
+                if type(e[k]) == str:
+                    e[k] = e[k].replace('\n', ' ')
 
     def save(self):
         if self._observer is not None:
@@ -45,11 +49,19 @@ class Database():
         changes_dict = {}
         for i, (e_new, e_old) in enumerate(zip(db.entries, self._db.entries)):
             for key, val_new in e_new.items():
+                if type(val_new) == str:
+                    val_new = val_new.replace('\n', ' ')
                 val_old = e_old.get(key)
                 if val_old != val_new:
                     if i not in changes_dict:
                         changes_dict[i] = {}
                     changes_dict[i][key] = (val_new, val_old)
+            delkeys = [k for k in e_old.keys() if k not in e_new.keys()]
+            if i not in changes_dict and len(delkeys) > 0:
+                changes_dict[i] = {}
+            for k in delkeys:
+                changes_dict[i][k] = (None, e_old[k])
+        print(changes_dict)
         return changes_dict
 
     def add(self, info):
@@ -64,7 +76,7 @@ class Database():
     def remove(self, pdf):
         pdf = os.path.abspath(pdf)
         es = []
-        for i, e in enumerate(self._db.entries):
+        for e in self._db.entries:
             if e.get('path') == pdf:
                 es.append(e)
         for e in es:
@@ -92,3 +104,23 @@ class Database():
 
     def set(self, key, info):
         self._db.entries[key] = info.get_dict()
+
+    def refetch(self):
+        for e in self._db.entries:
+            if 'doi' in e:
+                info = Info(info_dict=e)
+                print(e["ID"])
+                rename = info.refetch()
+                if(rename):
+                    op = info.get('path')
+                    info.rename_pdf()
+                    np = info.get('path')
+                    if op != np:
+                        os.rename(op, np)
+                print()
+
+    def update_pdfs(self):
+        for e in self._db.entries:
+            if 'doi' in e and 'path' in e:
+                print(e["ID"])
+                os.system(f'scihubpdf {e["doi"]} {e["path"]}')

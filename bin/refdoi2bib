@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""Generate BibTeX reference metadata from DOI links.
+
+INPUT_FILE must contain at most one DOI link per line.
+Lines beginning with '#' in INPUT_FILE are safe to use for comments.
+
+"""
+
+import argparse
+import os
+import urllib.error as ue
+import urllib.request as ur
+
+
+def _get_args() -> argparse.Namespace:
+    description, epilog = __doc__.split(os.linesep + os.linesep, 1)
+    parser = argparse.ArgumentParser(description=description, epilog=epilog)
+    parser.add_argument(
+        "-f",
+        "--fromfile",
+        action="store_true",
+        help="interpret the operand as an input file containing DOI links",
+    )
+    parser.add_argument(
+        "-t",
+        "--plaintext",
+        action="store_true",
+        help="request plain text citation instead of BibTeX",
+    )
+    parser.add_argument(
+        "doi_or_file",
+        metavar="DOI|INPUT_FILE",
+        help="single DOI link, or INPUT_FILE if -f was given",
+    )
+    return parser.parse_args()
+
+
+def getbib(doi: str, plain: bool = False) -> str:
+    """Get BibTeX metadata or plain text citation from a DOI link."""
+    url = doi.rstrip().lstrip()
+    if plain:
+        content_negotiation = "text/x-bibliography"
+    else:
+        content_negotiation = "application/x-bibtex"
+
+    if not url.startswith("https://doi.org/"):
+        url = "https://doi.org/" + url
+    try:
+        response = ur.urlopen(
+            ur.Request(url, headers={"Accept": content_negotiation})
+        )
+    except ue.URLError:
+        return "failed to open URL"
+    return response.read().decode("utf-8")
+
+
+def _main():
+    args = _get_args()
+    if args.fromfile:
+        with open(args.doi_or_file) as file:
+            for line in file:
+                if line.startswith("#"):  # Treat hash as comment marker.
+                    continue
+                if line.rstrip():  # Skip blank lines.
+                    if args.plaintext:
+                        print(getbib(line, plain=args.plaintext))
+
+    else:
+        print(getbib(args.doi_or_file, plain=args.plaintext))
+
+
+if __name__ == "__main__":
+    try:
+        _main()
+    except KeyboardInterrupt:
+        pass

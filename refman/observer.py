@@ -82,8 +82,11 @@ class Observer():
             self._allowed_renames.append(filename_from)
 
     def _handle_move(self, filename_from, filename_to):
-        # NYI
-        pass
+        for e in self._db:
+            if e.get('path') == filename_from:
+                e['path'] = filename_to
+                break
+        self._db.save()
 
     def _handle_modified(self, filename):
         filename = os.path.abspath(filename)
@@ -95,12 +98,18 @@ class Observer():
         if filename == self._db.get_file():
             changes = self._db.changes()
 
-        for key, val in changes.items():
-            info = Info(info_dict=self._db.idx(key))
-            filename = info.get('path')
-            if info.handle_changes(val):
-                self._rename_info(filename, info)
-            self._db.set(key, info)
+            for key, val in changes.items():
+                info = Info(info_dict=self._db.idx(key))
+                filename = info.get('path')
+                if info.handle_changes(val):
+                    self._rename_info(filename, info)
+
+                    self._notify.title = 'Handeled Changes'
+                    self._notify.message = info.get('title')
+                    self._notify.send()
+
+                self._db.set(key, info)
+
 
         self._db.save()
 

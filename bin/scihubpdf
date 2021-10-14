@@ -1,0 +1,25 @@
+#/usr/bin/env sh
+
+if [ -z "$1" ]; then
+  echo "Need a doi"
+  exit 1
+fi
+doi=$1
+shift
+if [ -z "$1" ]; then
+  echo "Need a pdf"
+  exit 1
+fi
+pdf=$1
+shift
+
+if [ -z "$SCIHUB_URL" ]; then
+  SCIHUB_URL=https://sci-hub.se/
+fi
+
+link=$SCIHUB_URL$doi
+
+# extract pdf link with grep
+pdflink=`wget $link -qO - | grep -Eom1 '//[^ ]+\.pdf'`
+if [ -z "$pdflink" ]; then exit 1; fi
+wget -qO $pdf https:$pdflink

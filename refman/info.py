@@ -28,15 +28,22 @@ class Info():
     def retrieve(self):
         res = pdf2doi.pdf2doi(
             self.pdf_file, webvalidation=False, verbose=True)
+        print(res)
         s = None
         if res['identifier_type'] == 'DOI':
-            s = os.popen(f'doi2bib {res["identifier"]}').read()
+            print("Start doi2bib")
+            s = os.popen(f'refdoi2bib "{res["identifier"]}"').read()
         elif res['identifier_type'] == 'arxiv ID':
-            s = os.popen(f'arxiv2bib {res["identifier"]}').read()
+            print("Start arxiv2bib")
+            s = os.popen(f'arxiv2bib "{res["identifier"]}"').read()
+        s = s.strip()
         if s is None or s == '':
             self.info_dict = self.basic_dict()
             return False
         x = bibtexparser.loads(s)
+        if len(x.entries) == 0:
+            self.info_dict = self.basic_dict()
+            return False
         self.info_dict = x.entries[0]
         self.info_dict['path'] = self.pdf_file
         if 'abstract' in self.info_dict:
@@ -44,12 +51,42 @@ class Info():
         self.fixID()
         return True
 
+    def refetch(self):
+        if 'doi' in self.info_dict:
+            s = os.popen(f'refdoi2bib "{self.info_dict["doi"]}"').read()
+            s = s.strip()
+            if s is None or s == '':
+                return False
+            x = bibtexparser.loads(s).entries[0]
+            n_updated = 0
+            updated_names = False
+            for k in x.keys():
+                if k == "ID":
+                    continue
+                if k in self.info_dict.keys():
+                    if not self.info_dict[k] == x[k]:
+                        print(f"  UPD {k}:\t '{self.info_dict[k]}' -> '{x[k]}'")
+                        self.info_dict[k] = x[k]
+                        n_updated+=1
+                        if k == "author" or k == "year":
+                            updated_names = True
+                else:
+                    if k != "abstract":
+                        print(f"  NEW {k}:\t '{x[k]}'")
+                        self.info_dict[k] = x[k]
+                        n_updated+=1
+            if updated_names:
+                self.fixID()
+            return updated_names
+
     def fixID(self):
         if not 'author' in self.info_dict or not 'year' in self.info_dict:
             return
         astr = self.info_dict['author']
         name = re.search(r'\s([^\s]+)(\sand|$)', astr).groups()[0]
-        self.info_dict['ID'] = name + self.info_dict['year']
+        key = name + self.info_dict['year']
+        self.info_dict["ID"] = key
+
 
     def get(self, s):
         return self.info_dict.get(s)
@@ -71,7 +108,10 @@ class Info():
 
     def handle_changes(self, changes):
         for k, (vn, vo) in changes.items():
-            print(self.info_dict[k])
+            if vo is None:
+                print('None ->', vn)
+            else:
+                print(self.info_dict[k], '->', vn)
             if k != 'path':
                 if vn is None:
                     del self.info_dict[k]
@@ -80,7 +120,7 @@ class Info():
         if 'todo' in self.info_dict:
             failed = False
             if 'doi' in self.info_dict:
-                s = os.popen(f'doi2bib {self.info_dict["doi"]}').read()
+                s = os.popen(f'refdoi2bib "{self.info_dict["doi"]}"').read()
                 if s == '':
                     del self.info_dict['doi']
                     failed = True
@@ -88,7 +128,7 @@ class Info():
                     x = bibtexparser.loads(s)
                     self.info_dict = x.entries[0]
             elif 'arxiv' in self.info_dict:
-                s = os.popen(f'doi2bib {self.info_dict["arxiv"]}').read()
+                s = os.popen(f'refdoi2bib "{self.info_dict["arxiv"]}"').read()
                 if s == '':
                     del self.info_dict['arxiv']
                     failed = True
@@ -101,7 +141,8 @@ class Info():
                 failed = True
             if not failed:
                 self.info_dict['path'] = self.pdf_file
-                del self.info_dict['todo']
+                if 'todo' in self.info_dict:
+                    del self.info_dict['todo']
         self.fixID()
         print(self.info_dict['path'])
         return True

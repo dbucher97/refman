@@ -33,13 +33,17 @@ class RefMan():
             usage='''ref <command> [<args>]
 
 The available subommands are:
-   watch     Watch the defiend directory and add every incoming PDF.
-   open      Open a pdf by reference ID.
-   info      Get Meta Info for a PDF.
-   complete  Autocomplete String.
-   start     Start watching in background.
-   stop      Stop watching in background.
-   fix       Jump to manual action in bib database.
+   watch            Watch the defiend directory and add every incoming PDF.
+   open             Open a pdf by reference ID.
+   info             Get Meta Info for a PDF.
+   complete         Autocomplete String.
+   refetch          Refetch data from DOI.
+   start            Start watching in background.
+   stop             Stop watching in background.
+   fix              Jump to manual action in bib database.
+   file_check       Get file errors.
+   update_pdfs      Update pdfs.
+   edit             Edit the BibTeX file.
 ''')
 #   add       Download objects and refs from another repository
 #   remove    Download objects and refs from another repository
@@ -94,7 +98,40 @@ The available subommands are:
             'launchctl unload -w /usr/local/opt/refman/plist/com.bucher.refman.plist')
 
     def fix(self):
-        os.system(f'nvim {os.path.join(self.path, "master.bib")} -c "/todo"')
+        os.system(f'nvim {os.path.join(self.path, "master.bib")} -c ":set '+ 
+                'autoread | map <leader>r :checktime<CR> | /todo"')
+
+    def edit(self):
+        os.system(f'nvim {os.path.join(self.path, "master.bib")} -c ":set '+ 
+                'autoread | map <leader>r :checktime<CR>"')
+
+    def file_check(self):
+        from refman import Database
+        db = Database(self.path)
+        for e in db:
+            path = e.get('path')
+            check = False
+            if path:
+                check = os.path.isfile(path)
+                path = 'DIR' + path[len(self.path):]
+            else:
+                path = ""
+            print(f'{e.get("ID"): <16} {"✅" if check else "⛔️"} {path}')
+
+    def refetch(self):
+        if os.popen('launchctl list com.bucher.refman 2> /dev/null').read() == '':
+            from refman import Database
+            db = Database(self.path)
+            db.refetch()
+            db.save()
+        else:
+            print("Please stop refman first")
+
+    def update_pdfs(self):
+        from refman import Database
+        db = Database(self.path)
+        db.update_pdfs()
+
 
 
 if __name__ == '__main__':

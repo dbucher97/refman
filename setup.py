@@ -8,7 +8,7 @@ setup(
     description='Reference Manager automatically generating BibTeX',
     license='GNU',
     packages=['refman'],
-    scripts=['bin/ref'],
+    scripts=['bin/ref', 'bin/refdoi2bib', 'bin/scihubpdf'],
     author='David Bucher',
     author_email='David.Bucher@gmail.com',
     keywords=['latex', 'bibtex', 'pdf', 'reference', 'doi', 'arxiv', 'isbn'],
